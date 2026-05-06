@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>常用漢字 Browser</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Serif+JP:wght@400;700&family=M+PLUS+1p:wght@700&family=Sawarabi+Gothic&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;font-feature-settings:"jp90" 1}
+:root{
+  --bg:#f5f5f0;--card:#fff;--border:#e8e8e4;--text:#1a1a1a;--muted:#888;--accent:#1a73e8;
+  --ja-sans:'Noto Sans JP','Hiragino Kaku Gothic ProN','Meiryo','Yu Gothic',sans-serif;
+  --ja-serif:'Noto Serif JP','Hiragino Mincho ProN','Yu Mincho',serif;
+}
+body{font-family:var(--ja-sans);background:var(--bg);color:var(--text);-webkit-locale:"ja";font-language-override:"JAN"}
+.app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:340px;border-right:1px solid var(--border);display:flex;flex-direction:column;background:#fafaf8;flex-shrink:0}
+.main{flex:1;overflow-y:auto;padding:32px 40px}
+
+.search-wrap{padding:16px;border-bottom:1px solid var(--border);background:#fff}
+.search-input{width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:15px;font-family:var(--ja-sans);outline:none;transition:border .2s}
+.search-input:focus{border-color:var(--accent)}
+.search-hint{font-size:11px;color:var(--muted);margin-top:6px}
+
+.filters{padding:10px 16px;display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+.fbtn{padding:4px 10px;border-radius:6px;border:1px solid #ddd;background:#fff;font-size:12px;cursor:pointer;font-family:inherit;color:#555;transition:all .15s}
+.fbtn:hover{background:#f0f0ec}
+.fbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+.list-count{padding:8px 16px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border)}
+.kanji-list{flex:1;overflow-y:auto}
+.ki{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;border-bottom:1px solid #f0f0ec;transition:background .1s}
+.ki:hover{background:#f0f0ec}
+.ki.on{background:#e8f0fe}
+.ki-ch{font-family:var(--ja-serif);font-size:32px;width:44px;text-align:center;flex-shrink:0}
+.ki-info{flex:1;min-width:0}
+.ki-m{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ki-meta{font-size:11px;color:var(--muted)}
+.ki-badges{display:flex;gap:4px;flex-shrink:0}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.bg{background:#e8f0fe;color:#1a73e8}.bj{background:#fce8e6;color:#d93025}.bf{background:#e6f4ea;color:#137333}
+.ki-prog{width:4px;height:32px;border-radius:2px;flex-shrink:0}
+.pm{background:#34a853}.py{background:#fbbc04}.pn{background:#e0e0dc}
+
+.detail-empty{display:flex;align-items:center;justify-content:center;height:100%;color:#ccc;font-size:18px}
+.d-front{text-align:center;padding:24px 0 20px;border-bottom:2px solid var(--border);margin-bottom:24px}
+.d-kr{display:flex;justify-content:center;gap:32px;flex-wrap:wrap}
+.dk{font-size:108px;line-height:1.1}
+.dk.f1{font-family:var(--ja-serif)}.dk.f2{font-family:var(--ja-sans)}.dk.f3{font-family:'M PLUS 1p',var(--ja-sans)}.dk.f4{font-family:'Sawarabi Gothic',var(--ja-sans);font-size:96px}
+
+.d-hdr{display:flex;align-items:baseline;gap:16px;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--border)}
+.d-hk{font-family:var(--ja-serif);font-size:56px;line-height:1}
+.d-hi{flex:1}
+.d-pm{font-size:24px;font-weight:700;margin-bottom:2px}
+.d-ms{font-size:13px;color:var(--muted)}
+.d-badges{margin-top:4px}
+
+.d-rd{display:flex;border:1px solid #eee;border-radius:8px;overflow:hidden;margin-bottom:20px}
+.d-rb{flex:1;padding:10px 14px}
+.d-rb+.d-rb{border-left:1px solid #eee}
+.d-rl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:3px}
+.d-rv{font-size:18px}
+
+.sec{margin-bottom:20px}
+.st{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#999;margin-bottom:8px;font-weight:700}
+
+.rad-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+.rad-chip{display:flex;align-items:center;gap:8px;background:#f7f7f4;border:1px solid #e4e4e0;border-radius:8px;padding:8px 14px}
+.rad-c{font-family:var(--ja-serif);font-size:32px}
+.rad-n{font-size:12px;color:#666;line-height:1.3}
+.rad-nj{color:#333;font-weight:500}
+.plus{font-size:22px;color:#ccc}
+.hline{font-size:12px;color:#999;font-style:italic;margin-top:6px}
+
+.mn{border-radius:8px;padding:12px 16px;margin-bottom:8px;font-size:14px;line-height:1.6}
+.mn-h{background:#fffbeb;border:1px solid #f0e6c0;color:#4a4a3a}
+.mn-k{background:#f0f7ff;border:1px solid #c8ddf0;color:#3a4a5a}
+.mn-l{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#aaa;margin-bottom:4px}
+
+table.vt{width:100%;border-collapse:collapse}
+.vt tr{border-bottom:1px solid #f0f0ec}
+.vt tr:last-child{border-bottom:none}
+.vt td{padding:7px 0;vertical-align:baseline}
+.vw{font-family:var(--ja-serif);font-size:20px;white-space:nowrap;padding-right:14px}
+.vr{font-size:13px;color:#888;white-space:nowrap;padding-right:14px}
+.vm{font-size:13px;color:#555}
+.vf{font-size:11px;color:#bbb;text-align:right;white-space:nowrap;padding-left:10px;font-variant-numeric:tabular-nums}
+
+.prog-row{background:#f0f0ec;border-radius:6px;padding:10px 16px;display:flex;gap:20px}
+.ps{text-align:center}
+.pv{font-size:18px;font-weight:700}
+.pl{font-size:10px;color:#999;text-transform:uppercase}
+.prog-new{background:#f7f7f4;border-radius:6px;padding:10px 14px;font-size:13px;color:#aaa;text-align:center}
+.confusion{margin-top:8px;font-size:12px;color:#b88;background:#fdf6f4;padding:6px 10px;border-radius:4px;border-left:3px solid #daa}
+
+@media(max-width:900px){.sidebar{width:280px}.main{padding:20px}}
+@media(max-width:640px){.app{flex-direction:column}.sidebar{width:100%;height:50vh}.main{height:50vh}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="search-wrap">
+      <input class="search-input" id="search" placeholder="kanji, reading, meaning, vocab..." autocomplete="off">
+      <div class="search-hint">Romaji, kana, English, kanji — searches everything</div>
+    </div>
+    <div class="filters" id="filters"></div>
+    <div class="list-count" id="listCount"></div>
+    <div class="kanji-list" id="kanjiList"></div>
+  </div>
+  <div class="main" id="detail"><div class="detail-empty">Select a kanji</div></div>
+</div>
+<script>
+let DATA=[], filtered=[], activeK=null, activeG=null, activeJ=null, sortLapses=false;
+
+const R2K={a:'あ',i:'い',u:'う',e:'え',o:'お',ka:'か',ki:'き',ku:'く',ke:'け',ko:'こ',sa:'さ',si:'し',shi:'し',su:'す',se:'せ',so:'そ',ta:'た',chi:'ち',ti:'ち',tu:'つ',tsu:'つ',te:'て',to:'と',na:'な',ni:'に',nu:'ぬ',ne:'ね',no:'の',ha:'は',hi:'ひ',hu:'ふ',fu:'ふ',he:'へ',ho:'ほ',ma:'ま',mi:'み',mu:'む',me:'め',mo:'も',ya:'や',yu:'ゆ',yo:'よ',ra:'ら',ri:'り',ru:'る',re:'れ',ro:'ろ',wa:'わ',wo:'を',n:'ん',ga:'が',gi:'ぎ',gu:'ぐ',ge:'げ',go:'ご',za:'ざ',ji:'じ',zi:'じ',zu:'ず',ze:'ぜ',zo:'ぞ',da:'だ',di:'ぢ',du:'づ',de:'で',ba:'ば',bi:'び',bu:'ぶ',be:'べ',bo:'ぼ',pa:'ぱ',pi:'ぴ',pu:'ぷ',pe:'ぺ',po:'ぽ',kya:'きゃ',kyu:'きゅ',kyo:'きょ',sha:'しゃ',shu:'しゅ',sho:'しょ',cha:'ちゃ',chu:'ちゅ',cho:'ちょ',nya:'にゃ',nyu:'にゅ',nyo:'にょ',hya:'ひゃ',hyu:'ひゅ',hyo:'ひょ',mya:'みゃ',myu:'みゅ',myo:'みょ',rya:'りゃ',ryu:'りゅ',ryo:'りょ',gya:'ぎゃ',gyu:'ぎゅ',gyo:'ぎょ',ja:'じゃ',ju:'じゅ',jo:'じょ',bya:'びゃ',byu:'びゅ',byo:'びょ',pya:'ぴゃ',pyu:'ぴゅ',pyo:'ぴょ',do:'ど'};
+function r2k(s){let o='',i=0;while(i<s.length){if(i+1<s.length&&s[i]===s[i+1]&&s[i]!=='n'){o+='っ';i++;continue}let f=false;for(let l=3;l>=1;l--){const c=s.substring(i,i+l);if(R2K[c]){o+=R2K[c];i+=l;f=true;break}}if(!f){o+=s[i];i++}}return o}
+function h2k(s){return s.replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60))}
+function isRom(s){return/^[a-z]+$/.test(s)}
+
+function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=String(s);return d.innerHTML}
+
+async function init(){
+  const r=await fetch('data/kanji_export.json');
+  DATA=await r.json();
+  // Build search index
+  DATA.forEach(k=>{
+    k._s = [
+      k.k, k.on, k.kun, k.m, k.pm, k.hk, k.hs, k.ks, k.hc,
+      ...k.r.map(r=>r.c+' '+r.nj+' '+r.ne),
+      ...k.v.map(v=>v.w+' '+v.rd+' '+v.mn)
+    ].join(' ').toLowerCase();
+  });
+  buildFilters();
+  loadFromURL();
+  window.addEventListener('popstate', loadFromURL);
+}
+
+function buildFilters(){
+  const f=document.getElementById('filters');
+  [1,2,3,4,5,6,8].forEach(g=>{
+    const b=document.createElement('button');
+    b.className='fbtn';b.textContent=g<=6?`G${g}`:'JHS';b.dataset.grade=g;
+    b.onclick=()=>{if(activeG===g){activeG=null;b.classList.remove('on')}else{document.querySelectorAll('[data-grade]').forEach(x=>x.classList.remove('on'));activeG=g;b.classList.add('on')}activeJ=null;document.querySelectorAll('[data-jlpt]').forEach(x=>x.classList.remove('on'));applyFilters();pushURL()};
+    f.appendChild(b);
+  });
+  let sep=document.createElement('span');sep.style.cssText='width:1px;height:20px;background:#ddd;margin:0 4px';f.appendChild(sep);
+  const lb=document.createElement('button');
+  lb.className='fbtn';lb.textContent='Leeches';lb.dataset.lapses='1';
+  lb.onclick=()=>{sortLapses=!sortLapses;lb.classList.toggle('on');applyFilters();pushURL()};
+  f.appendChild(lb);
+  sep=document.createElement('span');sep.style.cssText='width:1px;height:20px;background:#ddd;margin:0 4px';f.appendChild(sep);
+  [5,4,3,2,1].forEach(j=>{
+    const b=document.createElement('button');
+    b.className='fbtn';b.textContent=`N${j}`;b.dataset.jlpt=j;
+    b.onclick=()=>{if(activeJ===j){activeJ=null;b.classList.remove('on')}else{document.querySelectorAll('[data-jlpt]').forEach(x=>x.classList.remove('on'));activeJ=j;b.classList.add('on')}activeG=null;document.querySelectorAll('[data-grade]').forEach(x=>x.classList.remove('on'));applyFilters();pushURL()};
+    f.appendChild(b);
+  });
+}
+
+function applyFilters(){
+  const raw=document.getElementById('search').value.trim();
+  const q=raw.toLowerCase();
+  let qH='',qK='';
+  if(isRom(q)){qH=r2k(q);qK=h2k(qH)}
+
+  filtered=DATA.filter(k=>{
+    if(activeG!==null&&k.g!==activeG)return false;
+    if(activeJ!==null&&k.j!==activeJ)return false;
+    if(!q)return true;
+
+    // Direct kanji match (highest priority)
+    if(k.k===q)return true;
+
+    // Search in prebuilt index
+    if(k._s.includes(q))return true;
+
+    // Romaji converted to kana
+    if(qH&&k._s.includes(qH))return true;
+    if(qK&&k._s.includes(qK))return true;
+
+    return false;
+  });
+
+  if(sortLapses){
+    filtered=filtered.filter(k=>k.p&&k.p.l>0);
+    filtered.sort((a,b)=>b.p.l-a.p.l);
+  } else if(q){
+    filtered.sort((a,b)=>{
+      const sa=scoreMatch(a,q,qH,qK);
+      const sb=scoreMatch(b,q,qH,qK);
+      return sb-sa;
+    });
+  }
+
+  renderList();
+}
+
+function scoreMatch(k,q,qH,qK){
+  let s=0;
+  if(k.k===q)s+=1000;
+  if(k.pm&&k.pm.toLowerCase()===q)s+=500;
+  if(k.hk&&k.hk.toLowerCase()===q)s+=400;
+  // Readings
+  const on=k.on.toLowerCase(),kun=k.kun.toLowerCase();
+  if(on.includes(q)||on.includes(qH)||on.includes(qK))s+=300;
+  if(kun.includes(q)||kun.includes(qH)||kun.includes(qK))s+=300;
+  // Meaning
+  if(k.m&&k.m.toLowerCase().includes(q))s+=200;
+  // Radical names
+  for(const r of k.r){if((r.nj+' '+r.ne).toLowerCase().includes(q))s+=100}
+  // Vocab
+  for(const v of k.v){
+    if(v.w.includes(q)||v.rd.includes(q)||(qH&&v.rd.includes(qH)))s+=50;
+    if(v.mn.toLowerCase().includes(q))s+=20;
+  }
+  // Stories (low weight)
+  if(k.hs&&k.hs.toLowerCase().includes(q))s+=5;
+  if(k.ks&&k.ks.toLowerCase().includes(q))s+=5;
+  return s;
+}
+
+function renderList(){
+  const el=document.getElementById('kanjiList');
+  const cnt=document.getElementById('listCount');
+  cnt.textContent=`${filtered.length} kanji`;
+  el.innerHTML='';
+  const frag=document.createDocumentFragment();
+  filtered.forEach(k=>{
+    const d=document.createElement('div');
+    d.className='ki'+(activeK===k.k?' on':'');
+    const gl=k.g<=6?`G${k.g}`:'JHS';
+    const jl=k.j?`N${k.j}`:'';
+    let pc='pn';
+    if(k.p){pc=k.p.i>=21?'pm':'py'}
+    const lapsesBadge=sortLapses&&k.p?`<span class="badge" style="background:#fde7e7;color:#c62828">${k.p.l} lapses</span>`:'';
+    d.innerHTML=`<div class="ki-prog ${pc}"></div><div class="ki-ch">${esc(k.k)}</div><div class="ki-info"><div class="ki-m">${esc(k.pm)}</div><div class="ki-meta">${esc(k.on)} ${esc(k.kun)}</div></div><div class="ki-badges">${lapsesBadge}<span class="badge bg">${gl}</span>${jl?`<span class="badge bj">${jl}</span>`:''}</div>`;
+    d.onclick=()=>showDetail(k);
+    frag.appendChild(d);
+  });
+  el.appendChild(frag);
+}
+
+function fmtMn(s){
+  s=esc(s).substring(0,500);
+  s=s.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+  s=s.replace(/_(.*?)_/g,'<em>$1</em>');
+  return s;
+}
+
+function showDetail(k){
+  activeK=k.k;
+  pushURL();
+  renderList();
+  const el=document.getElementById('detail');
+  const gl=k.g<=6?`Grade ${k.g}`:'Junior High';
+
+  let radH='';
+  k.r.forEach((r,i)=>{
+    if(i>0)radH+='<span class="plus">+</span>';
+    radH+=`<div class="rad-chip"><span class="rad-c">${esc(r.c)}</span><span class="rad-n">${r.nj?`<span class="rad-nj">${esc(r.nj)}</span><br>`:''}${esc(r.ne)}</span></div>`;
+  });
+
+  let vocH='';
+  k.v.forEach(v=>{
+    const rank=v.fr<99999?`#${v.fr}`:'—';
+    vocH+=`<tr><td class="vw">${esc(v.w)}</td><td class="vr">${esc(v.rd)}</td><td class="vm">${esc(v.mn)}</td><td class="vf">${rank}</td></tr>`;
+  });
+
+  let mnH='';
+  if(k.hs)mnH+=`<div class="mn mn-h"><div class="mn-l">Heisig — ${esc(k.hk)}</div>${fmtMn(k.hs)}</div>`;
+  if(k.ks)mnH+=`<div class="mn mn-k"><div class="mn-l">Koohii</div>${fmtMn(k.ks)}</div>`;
+
+  let progH='';
+  if(k.p){
+    progH=`<div class="prog-row"><div class="ps"><div class="pv">${k.p.i}d</div><div class="pl">interval</div></div><div class="ps"><div class="pv">${k.p.rp}</div><div class="pl">reps</div></div><div class="ps"><div class="pv">${k.p.l}</div><div class="pl">lapses</div></div><div class="ps"><div class="pv">${esc(k.p.d)}</div><div class="pl">source</div></div></div>`;
+    if(k.p.n)progH+=`<div class="confusion">Confusion: ${esc(k.p.n)}</div>`;
+  }else{
+    progH='<div class="prog-new">New card — no prior reviews</div>';
+  }
+
+  el.innerHTML=`
+    <div class="d-front"><div class="d-kr">
+      <span class="dk f1">${esc(k.k)}</span>
+      <span class="dk f2">${esc(k.k)}</span>
+      <span class="dk f3">${esc(k.k)}</span>
+      <span class="dk f4">${esc(k.k)}</span>
+    </div></div>
+    <div class="d-hdr">
+      <div class="d-hk">${esc(k.k)}</div>
+      <div class="d-hi">
+        <div class="d-pm">${esc(k.pm)}${k.hk&&k.hk!==k.pm?` <span style="color:#999;font-size:16px;font-weight:400">(${esc(k.hk)})</span>`:''}</div>
+        <div class="d-ms">${esc(k.m)}</div>
+        <div class="d-badges">
+          <span class="badge bg">${gl} #${k.o}</span>
+          ${k.j?`<span class="badge bj">N${k.j}</span>`:''}
+          ${k.f?`<span class="badge bf">#${k.f}</span>`:''}
+        </div>
+      </div>
+    </div>
+    <div class="d-rd">
+      <div class="d-rb"><div class="d-rl">音読み On</div><div class="d-rv">${esc(k.on)||'—'}</div></div>
+      <div class="d-rb"><div class="d-rl">訓読み Kun</div><div class="d-rv">${esc(k.kun)||'—'}</div></div>
+    </div>
+    <div class="sec">
+      <div class="st">Radicals</div>
+      <div class="rad-row">${radH}</div>
+      ${k.hc?`<div class="hline">Heisig: ${esc(k.hc)}</div>`:''}
+    </div>
+    <div class="sec">
+      <div class="st">Mnemonics</div>
+      ${mnH||'<div style="color:#ccc;font-size:13px">No mnemonic available</div>'}
+    </div>
+    <div class="sec">
+      <div class="st">Vocabulary</div>
+      ${k.v.length?`<table class="vt">${vocH}</table>`:'<div style="color:#ccc;font-size:13px">No common vocab found</div>'}
+    </div>
+    <div class="sec">
+      <div class="st">Progress</div>
+      ${progH}
+    </div>`;
+  el.scrollTop=0;
+}
+
+function pushURL(){
+  const p=new URLSearchParams();
+  if(activeK)p.set('k',activeK);
+  if(activeG)p.set('g',activeG);
+  if(activeJ)p.set('j',activeJ);
+  if(sortLapses)p.set('leeches','1');
+  const q=document.getElementById('search').value.trim();
+  if(q)p.set('q',q);
+  const s=p.toString();
+  const url=s?'?'+s:location.pathname;
+  if(url!==location.pathname+location.search)history.pushState(null,'',url);
+}
+
+function loadFromURL(){
+  const p=new URLSearchParams(location.search);
+  const q=p.get('q')||'';
+  document.getElementById('search').value=q;
+
+  const g=p.get('g');
+  if(g){activeG=parseInt(g);document.querySelectorAll('[data-grade]').forEach(b=>{b.classList.toggle('on',b.dataset.grade===g)})}
+  else{activeG=null;document.querySelectorAll('[data-grade]').forEach(b=>b.classList.remove('on'))}
+
+  const j=p.get('j');
+  if(j){activeJ=parseInt(j);document.querySelectorAll('[data-jlpt]').forEach(b=>{b.classList.toggle('on',b.dataset.jlpt===j)})}
+  else{activeJ=null;document.querySelectorAll('[data-jlpt]').forEach(b=>b.classList.remove('on'))}
+
+  const l=p.get('leeches');
+  sortLapses=!!l;
+  const lb=document.querySelector('[data-lapses]');
+  if(lb)lb.classList.toggle('on',sortLapses);
+
+  applyFilters();
+
+  const k=p.get('k');
+  if(k){const entry=DATA.find(e=>e.k===k);if(entry)showDetail(entry)}
+}
+
+let sTimer;
+document.getElementById('search').addEventListener('input',()=>{clearTimeout(sTimer);sTimer=setTimeout(()=>{applyFilters();pushURL()},150)});
+
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  const idx=filtered.findIndex(k=>k.k===activeK);
+  if(e.key==='ArrowDown'&&idx<filtered.length-1){e.preventDefault();showDetail(filtered[idx+1]);document.querySelector('.ki.on')?.scrollIntoView({block:'nearest'})}
+  else if(e.key==='ArrowUp'&&idx>0){e.preventDefault();showDetail(filtered[idx-1]);document.querySelector('.ki.on')?.scrollIntoView({block:'nearest'})}
+});
+
+init();
+</script>
+</body>
+</html>

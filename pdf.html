@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDF Viewer (Yomitan-friendly)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf_viewer.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#555;min-height:100vh;font-family:sans-serif}
+
+.drop-zone{
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  min-height:100vh;padding:40px;cursor:pointer;transition:all .2s;
+}
+.drop-zone h2{font-size:24px;color:#ddd;margin-bottom:8px}
+.drop-zone p{font-size:14px;color:#999}
+.drop-zone.over{background:#444}
+.drop-zone.hidden{display:none}
+
+.toolbar{
+  position:sticky;top:0;background:#333;
+  padding:8px 16px;display:none;align-items:center;gap:12px;z-index:100;
+}
+.toolbar.show{display:flex}
+.toolbar button{
+  padding:5px 12px;border-radius:4px;border:none;background:#555;color:#fff;
+  font-size:13px;cursor:pointer;
+}
+.toolbar button:hover{background:#666}
+.toolbar .fname{font-size:13px;color:#aaa;flex:1}
+.toolbar .info{font-size:12px;color:#888}
+
+#pages{display:none;flex-direction:column;align-items:center;gap:20px;padding:20px 0 60px}
+#pages.show{display:flex}
+
+.page-container{
+  position:relative;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,0.3);
+}
+.page-container canvas{display:block}
+
+.page-container .textLayer{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  overflow:hidden;
+}
+.page-container .textLayer span{
+  position:absolute;
+  color:transparent;
+  white-space:pre;
+  -webkit-locale:"ja";
+  word-break:keep-all;
+}
+.page-container .textLayer span::selection{
+  background:rgba(0,100,255,0.3);
+}
+
+input[type="file"]{display:none}
+</style>
+</head>
+<body>
+
+<div class="toolbar" id="toolbar">
+  <button onclick="reset()">← New</button>
+  <button onclick="zoomChange(-0.25)">−</button>
+  <button onclick="zoomChange(0.25)">+</button>
+  <span class="fname" id="fname"></span>
+  <span class="info" id="info"></span>
+</div>
+
+<div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+  <h2>Drop PDF here</h2>
+  <p>or click to browse — text is selectable for Yomitan</p>
+</div>
+
+<input type="file" id="fileInput" accept=".pdf">
+<div id="pages"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.mjs" type="module"></script>
+<script type="module">
+import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.mjs';
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.worker.min.mjs';
+
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const pagesEl = document.getElementById('pages');
+const toolbar = document.getElementById('toolbar');
+const fname = document.getElementById('fname');
+const infoEl = document.getElementById('info');
+
+let pdfDoc = null;
+let scale = 1.5;
+
+async function renderPage(page, container) {
+  const viewport = page.getViewport({scale});
+  const dpr = window.devicePixelRatio || 1;
+
+  container.style.width = viewport.width + 'px';
+  container.style.height = viewport.height + 'px';
+
+  // Canvas
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.floor(viewport.width * dpr);
+  canvas.height = Math.floor(viewport.height * dpr);
+  canvas.style.width = viewport.width + 'px';
+  canvas.style.height = viewport.height + 'px';
+  container.appendChild(canvas);
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  await page.render({canvasContext: ctx, viewport}).promise;
+
+  // Text layer
+  const textContent = await page.getTextContent();
+  const textLayerDiv = document.createElement('div');
+  textLayerDiv.className = 'textLayer';
+  container.appendChild(textLayerDiv);
+
+  const textLayer = new pdfjsLib.TextLayer({
+    textContentSource: textContent,
+    container: textLayerDiv,
+    viewport: viewport,
+  });
+  await textLayer.render();
+}
+
+async function loadPDF(file) {
+  dropZone.classList.add('hidden');
+  toolbar.classList.add('show');
+  pagesEl.classList.add('show');
+  fname.textContent = file.name;
+  pagesEl.innerHTML = '<p style="color:#999;text-align:center;padding:40px">Loading...</p>';
+
+  const arrayBuffer = await file.arrayBuffer();
+  pdfDoc = await pdfjsLib.getDocument({data: arrayBuffer, cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/cmaps/', cMapPacked: true}).promise;
+  infoEl.textContent = pdfDoc.numPages + ' pages';
+  pagesEl.innerHTML = '';
+
+  for (let i = 1; i <= pdfDoc.numPages; i++) {
+    const page = await pdfDoc.getPage(i);
+    const container = document.createElement('div');
+    container.className = 'page-container';
+    pagesEl.appendChild(container);
+    await renderPage(page, container);
+  }
+}
+
+async function rerender() {
+  if (!pdfDoc) return;
+  pagesEl.innerHTML = '';
+  for (let i = 1; i <= pdfDoc.numPages; i++) {
+    const page = await pdfDoc.getPage(i);
+    const container = document.createElement('div');
+    container.className = 'page-container';
+    pagesEl.appendChild(container);
+    await renderPage(page, container);
+  }
+}
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type === 'application/pdf') loadPDF(file);
+});
+
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) loadPDF(e.target.files[0]);
+});
+
+window.reset = function() {
+  dropZone.classList.remove('hidden');
+  toolbar.classList.remove('show');
+  pagesEl.classList.remove('show');
+  pagesEl.innerHTML = '';
+  fileInput.value = '';
+  pdfDoc = null;
+};
+
+window.zoomChange = function(delta) {
+  scale = Math.max(0.5, Math.min(4, scale + delta));
+  rerender();
+};
+</script>
+</body>
+</html>
